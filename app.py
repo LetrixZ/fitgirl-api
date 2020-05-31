@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 app = Flask(__name__)
 
 base_url = '/api/v1'
-fitgirl = 'https://fitgirl-repacks.site/'
+fitgirl = 'http://fitgirl-repacks.site/'
 
 def get_size(text):
     isMB = None
@@ -51,19 +51,22 @@ def get_companies(text):
     return company
 
 def get_entries(number, game):
+    print("get_entries")
     page = requests.get(fitgirl+"page/"+str(number)+"/?s="+game)
+    print("get_entries.requests")
     soup = BeautifulSoup(page.content, 'html.parser')
     regex = re.compile('.*repack.*')
     entries = soup.find_all('article', {"class": regex})
-    if soup.find_all("a", {'class':'next'}):
+    """if soup.find_all("a", {'class':'next'}):
         number += 1
-        entries += get_entries(number, game)
+        entries += get_entries(number, game)"""
     return entries
 
 @app.route(base_url+"/search/<string:game>")
 def search_games(game):
     games = []
     entries = get_entries(1, game)
+    print("test")
     for entry in entries:
         if "-".join(entry['class']).find('tag-') != -1:
             continue
@@ -97,4 +100,4 @@ def index():
 
 if __name__ == '__main__':
     # Threaded option to enable multiple instances for multiple user access support
-    app.run(threaded=True, port=5000, debug=False)
+    app.run(threaded=True, port=5000, debug=True)
