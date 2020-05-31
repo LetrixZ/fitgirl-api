@@ -84,10 +84,10 @@ def search_games(game):
     return json.dumps(games)
 
 # A welcome message to test our server
-@app.route(base_url)
+@app.route(base_url+'/')
 def api():
     default_dict = {"message" : "Fitgirl-Repacks unnoficial api.", "author": "Fermin Cirella (Letrix)", "entries": 
-    [{'Search games':'/api/v1/search'}]}
+    [{'Search games':'/api/v1/search/:game'}]}
     return json.dumps(default_dict)
 
 @app.route("/")
