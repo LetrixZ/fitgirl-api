@@ -1,9 +1,9 @@
 # app.py
-import requests, re
+import requests, re, time
 from flask import Flask, jsonify, json
 from bs4 import BeautifulSoup
-from torrents import latest_torrents, search_torrents
-from dl_links import get_data
+from gamedata import game_data
+from torrents import search_torrents, latest_torrents
 
 base_url = '/api/v1'
 fitgirl = 'http://fitgirl-repacks.site/'
@@ -17,104 +17,35 @@ def return_json(obj):
     response = app.response_class(json.dumps(obj, sort_keys=False), mimetype=app.config['JSONIFY_MIMETYPE'])
     return response
 
-def get_size(text):
-    isMB = None
-    isSelective = False
-    offset = 0
-    ogStart = text.find('Original Size')
-    rpStart = text.find('Repack Size')
-    if text[ogStart:ogStart+30].find('GB') != -1 :
-        ogEnd = text[ogStart:].find('GB') + ogStart - 1
-        rpEnd = text[rpStart:].find('GB') + rpStart - 1
-        isMB = False
-    else:
-        ogEnd = text[ogStart:].find('MB') + ogStart - 1
-        rpEnd = text[rpStart:].find('MB') + rpStart - 1
-        isMB = True
-    # Get Original Size
-    ogSize = text[ogStart + 15: ogEnd]
-    if isMB:
-        ogSize = str(round(float(ogSize)/1000, 3))
-    # Get Repack Size
-    if text[rpStart:].find('[Selective Download]') != -1:
-        if text[rpStart:].find('~') != -1:
-            rpEnd += text[rpStart:].find('~') + rpStart - rpEnd
-        if text[rpStart:].find('from') != -1:
-            offset = 5
-        isSelective = True
-    rpSize = text[rpStart + 13 + offset:rpEnd]
-    print(rpSize)
-    if isMB:
-        rpSize = str(round(float(rpSize)/1000, 3))
-    return [ogSize, rpSize, isSelective]
-
-def get_genres(text):
-    grStart = text.find("Genres/Tags")
-    if grStart == -1:
-        return None
-    grEnd = text.find("Compan") - 1
-    genres = text[grStart + 13:grEnd].split(", ")
-    return genres
-
-def get_companies(text):
-    cpStart = text.find("Compan")
-    cpEnd = text.find("Language") - 1
-    if text.find("Company") == -1:
-        companies = (re.split("[,/\-!?:]+", text[cpStart+11:cpEnd]))
-        companies = [x.strip(' ') for x in companies]
-        return companies
-    company = (re.split("[,/\-!?:]+", text[cpStart+8:cpEnd]))
-    company = [x.strip(' ') for x in company]
-    return company
-
-def get_entries(number, game):
-    page = requests.get(fitgirl+"page/"+str(number)+"/?s="+game)
+def get_body(url):
+    page = requests.get(fitgirl+url)
     soup = BeautifulSoup(page.content, 'html.parser')
-    regex = re.compile('.*repack.*')
-    entries = soup.find_all('article', {"class": regex})
-    if soup.find_all("a", {'class':'next'}):
-        number += 1
-        entries += get_entries(number, game)
-    return entries
+    return soup
 
-@app.route(base_url+"/search/<string:game>")
-def search_games(game):
+@app.route(base_url+'/game/<string:gameID>')
+def gameData(gameID):
+    body = get_body(gameID)
+    gameData = game_data(body)
+    return return_json(gameData)
+
+@app.route(base_url+'/search/<string:searchTerm>')
+def searchData(searchTerm):
+    start_time = time.time()
+    page = 1
+    body = get_body('page/'+str(page)+'/?s='+searchTerm)
+    regex = re.compile('.*repack.*')
+    entries = body.find_all('article', {"class": regex})
+    if body.find_all("a", {'class':'next'}):
+        page += 1
+        entries += get_body('page/'+str(page)+'/?s='+searchTerm).find_all('article', {"class": regex})
     games = []
-    entries = get_entries(1, game)
-    """for entry in entries:
-        if "-".join(entry['class']).find('tag-') != -1:
-            continue
-        game = {}
-        id = entry.find('h1').find('a').get('href')[29:-1]
-        name = entry.find('h1').find('a').getText()
-        if name.find(u'\u2013') != -1:
-            name = name.replace(u'\u2013','-')
-        text = entry.find('p').getText()
-        size = get_size(text)
-        game['id'] = id 
-        game['name'] = name
-        game['originalSize'] = size[0]
-        game['repackSize'] = size[1]
-        game['selectiveDownload'] = size[2]
-        game['links'] = get_links(id)
-        game['genres'] = get_genres(text)
-        game['companies'] = get_companies(text)
-        games.append(game)"""
     for entry in entries:
-        game = {}
-        id = entry.find('h1').find('a').get('href')[29:-1]
-        game = get_data(id)
-        game['id'] = id
-        text = entry.find('p').getText()
-        size = get_size(text)    
-        game['originalSize'] = size[0]
-        game['repackSize'] = size[1]      
-        game['selectiveDownload'] = size[2] 
-        game['genres'] = get_genres(text)
-        game['companies'] = get_companies(text)
-        games.append(game)
-    #response = app.response_class(json.dumps(games, sort_keys=False), mimetype=app.config['JSONIFY_MIMETYPE'])
+        gameID = entry.find('h1', {'class':'entry-title'}).find('a').get('href')[29:-1]
+        gameData = game_data(get_body(gameID))
+        games.append(gameData)
+    print("--- %s seconds ---" % (time.time() - start_time))
     return return_json(games)
+
 
 @app.route(base_url+'/torrents/search/<string:name>')
 def searchTorrent(name):
