@@ -1,13 +1,20 @@
 # app.py
-import requests, json, re
-from flask import Flask
+import requests, re
+from flask import Flask, jsonify, json
 from bs4 import BeautifulSoup
-from torrents import *
-
-app = Flask(__name__)
+from torrents import latest_torrents, search_torrents
 
 base_url = '/api/v1'
 fitgirl = 'http://fitgirl-repacks.site/'
+
+app = Flask(__name__)
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
+app.config['JSON_SORT_KEYS'] = False
+app.config['JSON_AS_ASCII'] = False
+
+def return_json(obj):
+    response = app.response_class(json.dumps(obj, sort_keys=False), mimetype=app.config['JSONIFY_MIMETYPE'])
+    return response
 
 def get_size(text):
     isMB = None
@@ -85,26 +92,27 @@ def search_games(game):
         game['genres'] = get_genres(text)
         game['companies'] = get_companies(text)
         games.append(game)
-    return json.dumps(games)
+    #response = app.response_class(json.dumps(games, sort_keys=False), mimetype=app.config['JSONIFY_MIMETYPE'])
+    return return_json(games)
 
 @app.route(base_url+'/torrents/search/<string:name>')
 def searchTorrent(name):
-    return json.dumps(search_torrents(name))
+    return return_json(search_torrents(name))
 
 @app.route(base_url+'/torrents/latest')
 def getLatestsTorrents():
-    return json.dumps(latest_torrents())
+    return return_json(latest_torrents())
 
 @app.route(base_url+'/')
 def api():
     default_dict = {"message" : "Fitgirl-Repacks unnoficial api.", "author": "Fermin Cirella (Letrix)", "entries": 
     [{'Search games on Fitgirl':'/api/v1/search/:game','Search FitGirl torrents on 1337x':'/api/v1/torrents/search/:game','Latest FitGirl torrents on 1337x':'/api/v1/torrents/latest'}]}
-    return json.dumps(default_dict)
+    return return_json(default_dict)
 
 @app.route("/")
 def index():
     default_dict = {"message" : "🏴‍☠️🦜"}
-    return json.dumps(default_dict, ensure_ascii=False)
+    return return_json(default_dict)
 
 if __name__ == '__main__':
     # Threaded option to enable multiple instances for multiple user access support
