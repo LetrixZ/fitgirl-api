@@ -1,6 +1,5 @@
-import requests, json, re
+import requests
 from bs4 import BeautifulSoup
-#from app import *
 
 tracker = "https://1337x.to"
 

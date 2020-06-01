@@ -3,6 +3,7 @@ import requests, re
 from flask import Flask, jsonify, json
 from bs4 import BeautifulSoup
 from torrents import latest_torrents, search_torrents
+from dl_links import get_data
 
 base_url = '/api/v1'
 fitgirl = 'http://fitgirl-repacks.site/'
@@ -36,15 +37,21 @@ def get_size(text):
         ogSize = str(round(float(ogSize)/1000, 3))
     # Get Repack Size
     if text[rpStart:].find('[Selective Download]') != -1:
-        offset = 5
+        if text[rpStart:].find('~') != -1:
+            rpEnd += text[rpStart:].find('~') + rpStart - rpEnd
+        if text[rpStart:].find('from') != -1:
+            offset = 5
         isSelective = True
     rpSize = text[rpStart + 13 + offset:rpEnd]
+    print(rpSize)
     if isMB:
         rpSize = str(round(float(rpSize)/1000, 3))
     return [ogSize, rpSize, isSelective]
 
 def get_genres(text):
     grStart = text.find("Genres/Tags")
+    if grStart == -1:
+        return None
     grEnd = text.find("Compan") - 1
     genres = text[grStart + 13:grEnd].split(", ")
     return genres
@@ -74,7 +81,7 @@ def get_entries(number, game):
 def search_games(game):
     games = []
     entries = get_entries(1, game)
-    for entry in entries:
+    """for entry in entries:
         if "-".join(entry['class']).find('tag-') != -1:
             continue
         game = {}
@@ -84,11 +91,25 @@ def search_games(game):
             name = name.replace(u'\u2013','-')
         text = entry.find('p').getText()
         size = get_size(text)
-        game['id'] = id
+        game['id'] = id 
         game['name'] = name
         game['originalSize'] = size[0]
         game['repackSize'] = size[1]
         game['selectiveDownload'] = size[2]
+        game['links'] = get_links(id)
+        game['genres'] = get_genres(text)
+        game['companies'] = get_companies(text)
+        games.append(game)"""
+    for entry in entries:
+        game = {}
+        id = entry.find('h1').find('a').get('href')[29:-1]
+        game = get_data(id)
+        game['id'] = id
+        text = entry.find('p').getText()
+        size = get_size(text)    
+        game['originalSize'] = size[0]
+        game['repackSize'] = size[1]      
+        game['selectiveDownload'] = size[2] 
         game['genres'] = get_genres(text)
         game['companies'] = get_companies(text)
         games.append(game)
