@@ -2,6 +2,7 @@
 import requests, json, re
 from flask import Flask
 from bs4 import BeautifulSoup
+from torrents import *
 
 app = Flask(__name__)
 
@@ -10,6 +11,7 @@ fitgirl = 'http://fitgirl-repacks.site/'
 
 def get_size(text):
     isMB = None
+    isSelective = False
     offset = 0
     ogStart = text.find('Original Size')
     rpStart = text.find('Repack Size')
@@ -24,14 +26,15 @@ def get_size(text):
     # Get Original Size
     ogSize = text[ogStart + 15: ogEnd]
     if isMB:
-        ogSize = round(int(ogSize)/1000, 3)
+        ogSize = str(round(float(ogSize)/1000, 3))
     # Get Repack Size
     if text[rpStart:].find('[Selective Download]') != -1:
         offset = 5
+        isSelective = True
     rpSize = text[rpStart + 13 + offset:rpEnd]
-    #if isMB:
-        #rpSize = round(int(rpSize)/1000, 3)
-    return [ogSize, rpSize]
+    if isMB:
+        rpSize = str(round(float(rpSize)/1000, 3))
+    return [ogSize, rpSize, isSelective]
 
 def get_genres(text):
     grStart = text.find("Genres/Tags")
@@ -51,22 +54,19 @@ def get_companies(text):
     return company
 
 def get_entries(number, game):
-    print("get_entries")
     page = requests.get(fitgirl+"page/"+str(number)+"/?s="+game)
-    print("get_entries.requests")
     soup = BeautifulSoup(page.content, 'html.parser')
     regex = re.compile('.*repack.*')
     entries = soup.find_all('article', {"class": regex})
-    """if soup.find_all("a", {'class':'next'}):
+    if soup.find_all("a", {'class':'next'}):
         number += 1
-        entries += get_entries(number, game)"""
+        entries += get_entries(number, game)
     return entries
 
 @app.route(base_url+"/search/<string:game>")
 def search_games(game):
     games = []
     entries = get_entries(1, game)
-    print("test")
     for entry in entries:
         if "-".join(entry['class']).find('tag-') != -1:
             continue
@@ -81,16 +81,24 @@ def search_games(game):
         game['name'] = name
         game['originalSize'] = size[0]
         game['repackSize'] = size[1]
+        game['selectiveDownload'] = size[2]
         game['genres'] = get_genres(text)
         game['companies'] = get_companies(text)
         games.append(game)
     return json.dumps(games)
 
-# A welcome message to test our server
+@app.route(base_url+'/torrents/search/<string:name>')
+def searchTorrent(name):
+    return json.dumps(search_torrents(name))
+
+@app.route(base_url+'/torrents/latest')
+def getLatestsTorrents():
+    return json.dumps(latest_torrents())
+
 @app.route(base_url+'/')
 def api():
     default_dict = {"message" : "Fitgirl-Repacks unnoficial api.", "author": "Fermin Cirella (Letrix)", "entries": 
-    [{'Search games':'/api/v1/search/:game'}]}
+    [{'Search games on Fitgirl':'/api/v1/search/:game','Search FitGirl torrents on 1337x':'/api/v1/torrents/search/:game','Latest FitGirl torrents on 1337x':'/api/v1/torrents/latest'}]}
     return json.dumps(default_dict)
 
 @app.route("/")
