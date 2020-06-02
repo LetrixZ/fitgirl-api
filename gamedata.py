@@ -19,12 +19,17 @@ def get_data(body):
         index = 1
         genres = entries[0].getText().split(', ')
     companies = (re.split("[,/-]+", entries[index].getText()))
+    companies = [x.strip(' ') for x in companies]
     languages = entries[index+1].getText().split('/')
     originalSize = entries[index+2].getText()[:-3]
+    if (entries[index+2].getText()[-3:].find('MB')):
+        originalSize = str(int(originalSize)/1000)
     try:
         repackSize = entries[index+3].getText()[:-3] if entries[index+3].getText().find('from') else entries[index+3].getText()[5:-3]
     except IndexError:
         repackSize = entries[index+3].getText()[:-3][:entries[index+3].getText().find('~')-1]
+    if (entries[index+3].getText()[-3:].find('MB')) and entries[index+3].getText().find('from') == -1:
+        repackSize = str(int(repackSize)/1000)
     selective = ('Selective' in str(div))
     return (originalSize, repackSize, selective, genres, companies, languages)
 
@@ -51,15 +56,6 @@ def get_links(body):
 def get_screenshots(body):
     div = body.find('div', {'class':'entry-content'})   
     screenshots = []
-    """try:
-        p = div.findAll('p')[3].findAll('a')
-        if (len(p) == 0):
-            p = div.findAll('p')[2].findAll('a')
-    except IndexError:
-        p = div.findAll('p')[2].findAll('a')
-    for a in p:
-        src = a.find('img').get('src')
-        screenshots.append(src)"""
     img = div.findAll('img')
     for screenshot in img:
         if ('riotpixel' in screenshot.get('src')):
