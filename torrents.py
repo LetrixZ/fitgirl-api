@@ -19,6 +19,13 @@ def get_torrent_entries(url, pageNumber):
     entries[:] = [e for e in entries if e.find('td', {'class':'coll-5'}).find('a').getText() == 'FitGirl']
     return entries
 
+def get_torrent_link(url):
+    page = requests.get(url)
+    soup = BeautifulSoup(page.content, 'html.parser')
+    hash = soup.find('div', {'class':'infohash-box'}).find('span').getText()
+    print(hash)
+    return ('http://itorrents.org/torrent/'+hash+'.torrent', 'http://torrage.info/torrent.php?h='+hash, 'http://btcache.me/torrent/'+hash)
+
 def parse(entries):
     entries = entries
     torrents = []
@@ -26,6 +33,7 @@ def parse(entries):
         torrent = {}
         nameCode = e.find('td', {'class':'coll-1'}).findAll('a')[1]
         nameText = nameCode.getText()
+        links = get_torrent_link(tracker+nameCode.get('href'))
         if nameText.find('(') != -1:
             name = nameText[:nameText.find('(')-1]
         elif nameText.find('[') != -1:
@@ -38,6 +46,8 @@ def parse(entries):
         else:
             size = size[:-5]
         torrent['url'] = 'https://1337x.to'+nameCode.get('href')
+        torrentLinks = {'iTorrents':links[0],'Torrage':links[1],'BTCache':links[2]}
+        torrent['.torrent'] = torrentLinks
         torrent['name'] = name
         torrent['size'] = size
         torrent['seeds'] = seeds
