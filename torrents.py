@@ -33,7 +33,6 @@ def parse(entries):
         torrent = {}
         nameCode = e.find('td', {'class':'coll-1'}).findAll('a')[1]
         nameText = nameCode.getText()
-        links = get_torrent_link(tracker+nameCode.get('href'))
         if nameText.find('(') != -1:
             name = nameText[:nameText.find('(')-1]
         elif nameText.find('[') != -1:
@@ -46,8 +45,9 @@ def parse(entries):
         else:
             size = size[:-5]
         torrent['url'] = 'https://1337x.to'+nameCode.get('href')
-        torrentLinks = {'iTorrents':links[0],'Torrage':links[1],'BTCache':links[2]}
-        torrent['.torrent'] = torrentLinks
+        #links = get_torrent_link(tracker+nameCode.get('href'))
+        #torrentLinks = {'iTorrents':links[0],'Torrage':links[1],'BTCache':links[2]}
+        #torrent['.torrent'] = torrentLinks
         torrent['name'] = name
         torrent['size'] = size
         torrent['seeds'] = seeds
