@@ -23,13 +23,13 @@ def get_data(body):
     languages = entries[index+1].getText().split('/')
     originalSize = entries[index+2].getText()[:-3]
     if (entries[index+2].getText()[-3:].find('MB')):
-        originalSize = str(int(originalSize)/1000)
+        originalSize = str(float(originalSize)/1000)
     try:
         repackSize = entries[index+3].getText()[:-3] if entries[index+3].getText().find('from') else entries[index+3].getText()[5:-3]
     except IndexError:
         repackSize = entries[index+3].getText()[:-3][:entries[index+3].getText().find('~')-1]
     if (entries[index+3].getText()[-3:].find('MB')) and entries[index+3].getText().find('from') == -1:
-        repackSize = str(int(repackSize)/1000)
+        repackSize = str(float(repackSize)/1000)
     selective = ('Selective' in str(div))
     return (originalSize, repackSize, selective, genres, companies, languages)
 
