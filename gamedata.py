@@ -1,4 +1,4 @@
-import requests, re
+import re
 from bs4 import BeautifulSoup
 
 fitgirl = "https://fitgirl-repacks.site/"
@@ -8,7 +8,8 @@ def get_name(body):
     version = div.find('span').extract().getText() if div.find('span') else None
     name = div.getText()
     id = body.find('span', {'class':'entry-date'}).find('a').get('href')[29:-1]
-    return (name, version, id)
+    date = body.find('time', attrs={'datetime':True})['datetime']
+    return (name, version, id, date)
 
 def get_data(body):
     div = body.find('div', {'class':'entry-content'}).find('p')
@@ -22,14 +23,10 @@ def get_data(body):
     companies = [x.strip(' ') for x in companies]
     languages = entries[index+1].getText().split('/')
     originalSize = entries[index+2].getText()
-    #if (entries[index+2].getText()[-3:].find('MB')):
-    #    originalSize = str(float(originalSize)/1000)
     try:
         repackSize = entries[index+3].getText() if entries[index+3].getText().find('from') else entries[index+3].getText()[5:]
     except IndexError:
         repackSize = entries[index+3].getText()[:entries[index+3].getText().find('~')-1]
-    #if (entries[index+3].getText()[-3:].find('MB')) and entries[index+3].getText().find('from') == -1:
-    #    repackSize = str(float(repackSize)/1000)
     selective = ('Selective' in str(div))
     return (originalSize, repackSize, selective, genres, companies, languages)
 
@@ -68,7 +65,7 @@ def game_data(body):
     names = get_name(body)
     links = get_links(body)
     screenshots = get_screenshots(body)
-    game = {'id':names[2], 'name':names[0], 'version':names[1], 'originalSize':data[0], 'repackSize':data[1], 
+    game = {'id':names[2], 'name':names[0], 'version':names[1], 'date':names[3], 'originalSize':data[0], 'repackSize':data[1], 
     'selective':data[2], 'mirrors':links, 'genres':data[3], 'companies':data[4], 'languages':data[5], 'screenshots':screenshots}
     return game
 

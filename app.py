@@ -1,7 +1,10 @@
 # app.py
 import requests, re, time
+import asyncio
+import aiohttp
 from flask import Flask, jsonify, json
 from bs4 import BeautifulSoup
+from operator import itemgetter
 from gamedata import game_data
 from torrents import search_torrents, latest_torrents
 
@@ -22,30 +25,67 @@ def get_body(url):
     soup = BeautifulSoup(page.content, 'html.parser')
     return soup
 
-@app.route(base_url+'/game/<string:gameID>')
-def gameData(gameID):
-    body = get_body(gameID)
-    gameData = game_data(body)
-    return return_json(gameData)
+def get_bodies(urlList):
+    bodies = []
+    async def get(url):
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url=url) as response:
+                    resp = await response.read()
+                    print("Successfully got url {} with response of length {}.".format(url, len(resp)))
+                    if len(resp) > 1000:
+                        bodies.append(resp)
+        except Exception as e:
+            print("Unable to get url {} due to {}.".format(url, e.__class__))
+    async def main(urls, amount):
+        ret = await asyncio.gather(*[get(url) for url in urls])
+        print("Finalized all. ret is a list of len {} outputs.".format(len(ret)))
+    urls = urlList
+    amount = len(urls)
+    start = time.time()
+    asyncio.run(main(urls, amount))
+    end = time.time()
+    print("Took {} seconds to pull {} websites.".format(end - start, amount))
+    return bodies
 
-@app.route(base_url+'/search/<string:searchTerm>')
-def searchData(searchTerm):
-    start_time = time.time()
-    page = 1
+def get_entries(searchTerm, page):
+    print(page)
     body = get_body('page/'+str(page)+'/?s='+searchTerm)
     regex = re.compile('.*repack.*')
     entries = body.find_all('article', {"class": regex})
-    if body.find_all("a", {'class':'next'}):
+    """if body.find_all("a", {'class':'next'}):
         page += 1
-        entries += get_body('page/'+str(page)+'/?s='+searchTerm).find_all('article', {"class": regex})
+        if page > 1:
+            return entries
+        entries += get_entries(searchTerm, page)"""
+    return entries
+
+@app.route(base_url+'/game/<string:gameID>')
+def gameData(gameID):
+    start_time = time.time()
+    body = get_body(gameID)
+    gameData = game_data(body)
+    print("--- %s seconds ---" % (time.time() - start_time))
+    return return_json(gameData)
+
+@app.route(base_url+'/search/<string:searchTerm>/<string:page>')
+def searchData(searchTerm, page):
+    start_time = time.time()
+    entries = get_entries(searchTerm, page)
     games = []
-    for entry in entries:
+    urlList = [(fitgirl+x.find('h1', {'class':'entry-title'}).find('a').get('href')[29:-1]) for x in entries]
+    bodies = get_bodies(urlList)
+    for body in bodies:
+        soup =  BeautifulSoup(body, 'html.parser')
+        gameData = game_data(soup)
+        games.append(gameData)
+    """for entry in entries:
         gameID = entry.find('h1', {'class':'entry-title'}).find('a').get('href')[29:-1]
         gameData = game_data(get_body(gameID))
-        games.append(gameData)
+        games.append(gameData)"""
+    #games = sorted(games, key=itemgetter('date')) 
     print("--- %s seconds ---" % (time.time() - start_time))
     return return_json(games)
-
 
 @app.route(base_url+'/torrents/search/<string:name>')
 def searchTorrent(name):
@@ -58,7 +98,7 @@ def getLatestsTorrents():
 @app.route(base_url+'/')
 def api():
     default_dict = {"message" : "Fitgirl-Repacks unnoficial api.", "author": "Fermin Cirella (Letrix)", "entries": 
-    [{'Search games on Fitgirl':'/api/v1/search/:game','Search FitGirl torrents on 1337x':'/api/v1/torrents/search/:game','Latest FitGirl torrents on 1337x':'/api/v1/torrents/latest'}]}
+    [{'Search games on Fitgirl':'/api/v1/search/:game/:page', 'Get game download links by ID':'/api/1/game/:id','Search FitGirl torrents on 1337x':'/api/v1/torrents/search/:game','Latest FitGirl torrents on 1337x':'/api/v1/torrents/latest'}]}
     return return_json(default_dict)
 
 @app.route("/")
