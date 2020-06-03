@@ -7,7 +7,7 @@ from gamedata import game_data
 from torrents import search_torrents, latest_torrents
 
 base_url = '/api/v1'
-fitgirl = 'http://fitgirl-repacks.site/'
+fitgirl = 'https://fitgirl-repacks.site/'
 
 app = Flask(__name__)
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
@@ -30,7 +30,7 @@ def get_bodies(urlList):
             async with aiohttp.ClientSession() as session:
                 async with session.get(url=url) as response:
                     resp = await response.read()
-                    #print("Successfully got url {} with response of length {}.".format(url, len(resp)))
+                    print("Successfully got url {} with response of length {}.".format(url, len(resp)))
                     if len(resp) > 1000:
                         bodies.append(resp)
         except Exception as e:
