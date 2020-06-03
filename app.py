@@ -49,7 +49,6 @@ def get_bodies(urlList):
     return bodies
 
 def get_entries(searchTerm, page):
-    print(page)
     body = get_body('page/'+str(page)+'/?s='+searchTerm)
     regex = re.compile('.*repack.*')
     entries = body.find_all('article', {"class": regex})
@@ -83,7 +82,7 @@ def searchData(searchTerm):
         gameID = entry.find('h1', {'class':'entry-title'}).find('a').get('href')[29:-1]
         gameData = game_data(get_body(gameID))
         games.append(gameData)"""
-    #games = sorted(games, key=itemgetter('date')) 
+    games = sorted(games, key=itemgetter('date'))
     print("--- %s seconds ---" % (time.time() - start_time))
     return return_json(games)
 
@@ -97,7 +96,7 @@ def getLatestsTorrents():
 
 @app.route(base_url+'/')
 def api():
-    default_dict = {"message" : "Fitgirl-Repacks unnoficial api.", "author": "Fermin Cirella (Letrix)", "entries": 
+    default_dict = {"message" : "Fitgirl-Repacks unnoficial api.", "author": "u/LetrixZ", "entries": 
     [{'Search games on Fitgirl (first 2 pages)':'/api/v1/search/:game/', 'Get game download links by ID':'/api/1/game/:id','Search FitGirl torrents on 1337x':'/api/v1/torrents/search/:game','Latest FitGirl torrents on 1337x':'/api/v1/torrents/latest'}]}
     return return_json(default_dict)
 
