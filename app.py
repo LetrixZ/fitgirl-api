@@ -32,7 +32,7 @@ def get_bodies(urlList):
             async with aiohttp.ClientSession() as session:
                 async with session.get(url=url) as response:
                     resp = await response.read()
-                    print("Successfully got url {} with response of length {}.".format(url, len(resp)))
+                    #print("Successfully got url {} with response of length {}.".format(url, len(resp)))
                     if len(resp) > 1000:
                         bodies.append(resp)
         except Exception as e:
@@ -53,11 +53,11 @@ def get_entries(searchTerm, page):
     body = get_body('page/'+str(page)+'/?s='+searchTerm)
     regex = re.compile('.*repack.*')
     entries = body.find_all('article', {"class": regex})
-    """if body.find_all("a", {'class':'next'}):
+    if body.find_all("a", {'class':'next'}):
         page += 1
-        if page > 1:
+        if page > 2:
             return entries
-        entries += get_entries(searchTerm, page)"""
+        entries += get_entries(searchTerm, page)
     return entries
 
 @app.route(base_url+'/game/<string:gameID>')
@@ -68,10 +68,10 @@ def gameData(gameID):
     print("--- %s seconds ---" % (time.time() - start_time))
     return return_json(gameData)
 
-@app.route(base_url+'/search/<string:searchTerm>/<string:page>')
-def searchData(searchTerm, page):
+@app.route(base_url+'/search/<string:searchTerm>')
+def searchData(searchTerm):
     start_time = time.time()
-    entries = get_entries(searchTerm, page)
+    entries = get_entries(searchTerm, 1)
     games = []
     urlList = [(fitgirl+x.find('h1', {'class':'entry-title'}).find('a').get('href')[29:-1]) for x in entries]
     bodies = get_bodies(urlList)
@@ -98,7 +98,7 @@ def getLatestsTorrents():
 @app.route(base_url+'/')
 def api():
     default_dict = {"message" : "Fitgirl-Repacks unnoficial api.", "author": "Fermin Cirella (Letrix)", "entries": 
-    [{'Search games on Fitgirl':'/api/v1/search/:game/:page', 'Get game download links by ID':'/api/1/game/:id','Search FitGirl torrents on 1337x':'/api/v1/torrents/search/:game','Latest FitGirl torrents on 1337x':'/api/v1/torrents/latest'}]}
+    [{'Search games on Fitgirl (first 2 pages)':'/api/v1/search/:game/', 'Get game download links by ID':'/api/1/game/:id','Search FitGirl torrents on 1337x':'/api/v1/torrents/search/:game','Latest FitGirl torrents on 1337x':'/api/v1/torrents/latest'}]}
     return return_json(default_dict)
 
 @app.route("/")
