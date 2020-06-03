@@ -1,7 +1,5 @@
 # app.py
-import requests, re, time
-import asyncio
-import aiohttp
+import requests, re, time, asyncio, aiohttp
 from flask import Flask, jsonify, json
 from bs4 import BeautifulSoup
 from operator import itemgetter
@@ -77,6 +75,8 @@ def searchData(searchTerm):
     for body in bodies:
         soup =  BeautifulSoup(body, 'html.parser')
         gameData = game_data(soup)
+        if gameData is None:
+        	continue
         games.append(gameData)
     """for entry in entries:
         gameID = entry.find('h1', {'class':'entry-title'}).find('a').get('href')[29:-1]

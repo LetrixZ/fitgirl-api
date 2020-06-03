@@ -12,7 +12,11 @@ def get_name(body):
     return (name, version, id, date)
 
 def get_data(body):
-    div = body.find('div', {'class':'entry-content'}).find('p')
+    try:
+        div = body.find('div', {'class':'entry-content'}).find('p')
+    except Exception as e:
+        print(e)
+        return None
     entries = div.findAll('strong')
     index = 0
     genres = None
@@ -62,6 +66,8 @@ def get_screenshots(body):
 def game_data(body):
     #body = get_body(gameID)
     data = get_data(body)
+    if data is None:
+        return None
     names = get_name(body)
     links = get_links(body)
     screenshots = get_screenshots(body)
